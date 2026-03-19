@@ -1,1 +1,13 @@
-{"name":"MT Rider","short_name":"MTRider","start_url":"/","display":"standalone"} 
+{
+  "name": "MT Rider — Daily Discipline",
+  "short_name": "MT Rider",
+  "description": "Yamaha MT-15 themed daily discipline and maintenance tracker.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020205",
+  "theme_color": "#020205",
+  "icons": [
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ]
+}
