@@ -64,7 +64,7 @@ const Analytics = memo(function Analytics() {
 
   // Productivity score calculation
   const doneCount = habits.filter(h => h.done).length;
-  const score = Math.min(100, Math.round((doneCount / habits.length) * 60 + Math.min(streak, 20) * 2));
+  const score = habits.length === 0 ? 0 : Math.min(100, Math.round((doneCount / habits.length) * 60 + Math.min(streak, 20) * 2));
 
   // Animate speedometer needle (-90 to +90 degrees for a perfect semi-circle)
   useEffect(() => {
@@ -222,14 +222,14 @@ const Analytics = memo(function Analytics() {
                 boxShadow: `inset 0 10px 30px rgba(0,0,0,0.8), 0 0 30px ${colors.purple}20`,
                 display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12
               }}>
-                {String(animXp).padStart(6, '0').split('').map((digit, i) => (
+                {String(animXp || 0).padStart(6, '0').split('').map((digit, i) => (
                   <div key={i} className="neon-text font-mono" style={{
                     width: 45, height: 65, background: 'linear-gradient(180deg, rgba(20,20,30,0.8) 0%, rgba(5,5,10,0.9) 100%)',
-                    border: `1px solid ${i < String(animXp).padStart(6, '0').length - String(xp).length ? 'rgba(255,255,255,0.05)' : colors.cyan}60`,
+                    border: `1px solid ${i < String(animXp || 0).padStart(6, '0').length - String(xp || 0).length ? 'rgba(255,255,255,0.05)' : colors.cyan}60`,
                     borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 40, fontWeight: 900,
-                    color: i < String(animXp).padStart(6, '0').length - String(xp).length ? 'rgba(255,255,255,0.05)' : colors.cyan,
-                    boxShadow: i < String(animXp).padStart(6, '0').length - String(xp).length ? 'none' : `inset 0 0 15px ${colors.cyan}40, 0 0 10px ${colors.cyan}`
+                    color: i < String(animXp || 0).padStart(6, '0').length - String(xp || 0).length ? 'rgba(255,255,255,0.05)' : colors.cyan,
+                    boxShadow: i < String(animXp || 0).padStart(6, '0').length - String(xp || 0).length ? 'none' : `inset 0 0 15px ${colors.cyan}40, 0 0 10px ${colors.cyan}`
                   }}>{digit}</div>
                 ))}
                 <div className="font-display" style={{ alignSelf: 'flex-end', fontSize: 22, fontWeight: 900, color: colors.purple, marginLeft: 8, marginBottom: 8, textShadow: `0 0 10px ${colors.purple}` }}>XP</div>
