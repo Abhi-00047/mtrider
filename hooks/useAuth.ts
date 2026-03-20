@@ -61,6 +61,9 @@ export function useAuth() {
 
     checkUser();
 
+    // Safety timeout — force loading=false after 5s
+    const timeout = setTimeout(() => setLoading(false), 5000);
+
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
@@ -75,6 +78,7 @@ export function useAuth() {
 
     return () => {
       subscription.unsubscribe();
+      clearTimeout(timeout);
     };
   }, [setUser]);
 
