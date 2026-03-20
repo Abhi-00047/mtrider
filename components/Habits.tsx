@@ -11,11 +11,9 @@ const Habits = memo(function Habits() {
   const [newXp, setNewXp] = useState(50);
 
   const fetchHabits = useCallback(async () => {
-    if (!user) return;
     const { data, error } = await supabase
       .from('habits')
       .select('*')
-      .eq('user_id', user.id)
       .order('created_at', { ascending: true });
 
     if (error) {
