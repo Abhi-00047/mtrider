@@ -34,12 +34,13 @@ const Tasks = memo(function Tasks() {
       }
 
       if (data) {
+        useStore.getState().tasks.length = 0;
         setTasks(data.map((t: any) => ({
           id: t.id,
-          name: t.title,
+          name: t.title || t.name || 'Untitled',
           time: t.time || 'Any time',
-          done: t.completed,
-          priority: t.priority as 'high' | 'med' | 'low',
+          done: t.completed || false,
+          priority: (t.priority as 'high' | 'med' | 'low') || 'med',
           src: (t.via_bot ? 'tg' : 'app') as 'app' | 'tg',
           date: t.date || 'today'
         })));
