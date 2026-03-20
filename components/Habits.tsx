@@ -7,7 +7,7 @@ const Habits = memo(function Habits() {
   const { habits, toggleHabit, xp, level, streak, combo, comboActive, xpToday, soundOn, toggleSound, activeSkin } = useStore();
   const skin = SKINS[activeSkin] || SKINS[0];
   const doneCount = habits.filter(h => h.done).length;
-  const pct = Math.round(doneCount / habits.length * 100);
+  const pct = habits.length === 0 ? 0 : Math.round(doneCount / habits.length * 100);
   const xpRel = xp - (level - 1) * 1000;
   const xpFill = Math.min(100, Math.round(xpRel / 1000 * 100));
 

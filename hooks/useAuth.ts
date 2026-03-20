@@ -36,6 +36,18 @@ export function useAuth() {
           streak: 0,
           last_active: new Date().toISOString().split('T')[0]
         });
+
+        // Seed default habits
+        const defaultHabits = [
+          { user_id: user.id, title: 'Morning meditation', xp_reward: 60, completed: false },
+          { user_id: user.id, title: 'Cold shower', xp_reward: 50, completed: false },
+          { user_id: user.id, title: 'Workout — push day', xp_reward: 100, completed: false },
+          { user_id: user.id, title: 'Read 20 pages', xp_reward: 70, completed: false },
+          { user_id: user.id, title: 'Protein intake', xp_reward: 40, completed: false },
+          { user_id: user.id, title: 'Evening ride / walk', xp_reward: 80, completed: false },
+          { user_id: user.id, title: 'Journal & plan', xp_reward: 65, completed: false },
+        ];
+        await supabase.from('habits').insert(defaultHabits);
       }
 
       // Load all data into store

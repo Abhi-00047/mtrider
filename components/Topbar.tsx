@@ -44,9 +44,9 @@ const Topbar = memo(function Topbar({ title }: { title?: string }) {
 
         {/* Telegram Concierge Hook */}
         <div style={{ padding: '5px 10px', background: tgLinked ? `${skin.accent}15` : 'rgba(255,255,255,0.03)', border: `1px solid ${tgLinked ? `${skin.accent}40` : 'rgba(255,255,255,0.08)'}`, borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', transition: 'all 0.4s ease' }} onClick={() => !tgLinked ? setScreen('dashboard') : null}>
-          <div style={{ width: 5, height: 5, borderRadius: '50%', background: tgLinked ? skin.accent : '#555', boxShadow: tgLinked ? `0 0 8px ${skin.accent}` : 'none' }} />
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: tgLinked ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
-            {tgLinked ? 'Connected' : 'Offline'}
+          <div style={{ width: 5, height: 5, borderRadius: '50%', background: skin.accent, boxShadow: `0 0 8px ${skin.accent}` }} />
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
+            ONLINE
           </div>
         </div>
       </div>
