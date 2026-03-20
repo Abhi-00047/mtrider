@@ -5,6 +5,17 @@ import { supabase } from '@/lib/supabase';
 import Topbar from './Topbar';
 
 const Tasks = memo(function Tasks() {
+  useEffect(() => {
+    const fetchTasks = async () => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (data) useStore.getState().setTasks(data as any);
+    };
+    fetchTasks();
+  }, []);
+
   const { tasks, activeSkin, chatMsgs, addChatMsg, addTask, toggleTask, deleteTask, user, setTasks } = useStore();
   const [inp, setInp] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
