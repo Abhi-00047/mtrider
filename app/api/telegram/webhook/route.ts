@@ -24,67 +24,63 @@ export async function POST(req: NextRequest) {
     const lowerText = fullText.toLowerCase().trim();
     let replyText = 'Unknown command. Use "add <task>" or "done <habit>".';
 
+    // Using the user_id directly from environmental variables as requested
+    const userId = process.env.TELEGRAM_USER_ID;
+
+    if (!userId) {
+      console.error('[Telegram] Missing TELEGRAM_USER_ID in environment');
+      return NextResponse.json({ ok: false, error: 'User configuration missing' }, { status: 500 });
+    }
+
     // Command: add <task title>
     if (lowerText.startsWith('add ')) {
       const taskTitle = fullText.substring(4).trim();
       
-      // Since it's a private bot, we fetch the first profile to get the user_id
-      const { data: profile } = await supabase.from('profiles').select('id').limit(1).single();
-      
-      if (profile) {
-        const { error } = await supabase.from('tasks').insert({
-          user_id: profile.id,
-          title: taskTitle,
-          completed: false,
-          via_bot: true,
-          date: new Date().toISOString().split('T')[0],
-          time: 'Any time',
-          priority: 'med',
-          xp_reward: 50
-        });
+      const { error } = await supabase.from('tasks').insert({
+        user_id: userId,
+        title: taskTitle,
+        completed: false,
+        via_bot: true,
+        date: new Date().toISOString().split('T')[0],
+        time: 'Any time',
+        priority: 'med',
+        xp_reward: 50
+      });
 
-        if (error) {
-          replyText = `❌ Error adding task: ${error.message}`;
-        } else {
-          replyText = `🚀 Task added: "${taskTitle}"`;
-        }
+      if (error) {
+        replyText = `❌ Error adding task: ${error.message}`;
       } else {
-        replyText = '❌ Error: No user profile found in database.';
+        replyText = `🚀 Task added: "${taskTitle}"`;
       }
     } 
     // Command: done <habit name>
     else if (lowerText.startsWith('done ')) {
       const habitName = fullText.substring(5).trim();
-      const { data: profile } = await supabase.from('profiles').select('id').limit(1).single();
       
-      if (profile) {
-        // Find habit by name (case-insensitive)
-        const { data: habits } = await supabase
+      // Find habit by name (case-insensitive) for the specific user
+      const { data: habits } = await supabase
+        .from('habits')
+        .select('*')
+        .eq('user_id', userId)
+        .ilike('title', habitName);
+
+      if (habits && habits.length > 0) {
+        const habit = habits[0];
+        const { error } = await supabase
           .from('habits')
-          .select('*')
-          .eq('user_id', profile.id)
-          .ilike('title', habitName);
+          .update({ 
+            completed: true,
+            last_completed: new Date().toISOString() 
+          })
+          .eq('id', habit.id);
 
-        if (habits && habits.length > 0) {
-          const habit = habits[0];
-          const { error } = await supabase
-            .from('habits')
-            .update({ 
-              completed: true,
-              last_completed: new Date().toISOString() 
-            })
-            .eq('id', habit.id);
-
-          if (error) {
-            replyText = `❌ Error updating habit: ${error.message}`;
-          } else {
-            replyText = `🔥 Daily habit complete: "${habit.title}"!`;
-          }
+        if (error) {
+          replyText = `❌ Error updating habit: ${error.message}`;
         } else {
-          replyText = `❓ Habit "${habitName}" not found. Check the title spelling.`;
+          replyText = `🔥 Daily habit complete: "${habit.title}"!`;
         }
       } else {
-        replyText = '❌ Error: No user profile found in database.';
+        replyText = `❓ Habit "${habitName}" not found. Check the title spelling.`;
       }
     }
 

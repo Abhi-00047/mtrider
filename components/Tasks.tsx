@@ -1,10 +1,11 @@
 'use client';
 import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { useStore, SKINS } from '@/store/useStore';
+import { loadTasks } from '@/lib/sync';
 import Topbar from './Topbar';
 
 const Tasks = memo(function Tasks() {
-  const { tasks, activeSkin, chatMsgs, addChatMsg, addTask, toggleTask, deleteTask } = useStore();
+  const { tasks, activeSkin, chatMsgs, addChatMsg, addTask, toggleTask, deleteTask, user, setTasks } = useStore();
   const [inp, setInp] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -18,6 +19,17 @@ const Tasks = memo(function Tasks() {
       });
     }
   }, [chatMsgs]);
+
+  // Load tasks on mount
+  useEffect(() => {
+    if (user) {
+      loadTasks(user.id).then(fetchedTasks => {
+        setTasks(fetchedTasks);
+      }).catch(err => {
+        console.error('[Tasks] Failed to sync with Supabase:', err);
+      });
+    }
+  }, [user, setTasks]);
 
   const sorted = [...tasks].sort((a, b) => {
     if (a.done !== b.done) return a.done ? 1 : -1;

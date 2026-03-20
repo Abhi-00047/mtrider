@@ -66,6 +66,29 @@ export const loadUserData = async (user: User) => {
   });
 };
 
+export const loadTasks = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error loading tasks:', error);
+    return [];
+  }
+
+  return (data || []).map((t: any) => ({
+    id: t.id,
+    name: t.title,
+    time: t.time || 'Any time',
+    done: t.completed,
+    priority: t.priority as 'high' | 'med' | 'low',
+    src: (t.via_bot ? 'tg' : 'app') as 'app' | 'tg',
+    date: t.date || 'today'
+  }));
+};
+
 export const saveProgress = async (userId: string) => {
   const { xp, level, streak, lastActiveDate } = useStore.getState();
   await supabase.from('progress').upsert({

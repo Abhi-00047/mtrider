@@ -98,6 +98,7 @@ interface AppState {
   deleteTask: (id: number) => void;
 
   chatMsgs: ChatMsg[];
+  setTasks: (tasks: Task[]) => void;
   addChatMsg: (msg: ChatMsg) => void;
 
   savedTips: number[];
@@ -263,6 +264,7 @@ export const useStore = create<AppState>()(
         { role: 'bot', text: 'Hey Rider 🏍️ Send tasks in plain English — I\'ll add them to your tracker.' },
         { role: 'bot', text: 'Try: "add gym tomorrow 7am" or "done with morning ride"' },
       ],
+      setTasks: (tasks) => set({ tasks }),
       addChatMsg: (msg) => set({ chatMsgs: [...get().chatMsgs, msg] }),
 
       savedTips: [],
