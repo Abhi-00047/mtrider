@@ -90,6 +90,7 @@ interface AppState {
   resetAppData: () => void;
 
   habits: Habit[];
+  setHabits: (habits: Habit[]) => void;
   toggleHabit: (id: number) => void;
 
   tasks: Task[];
@@ -209,6 +210,7 @@ export const useStore = create<AppState>()(
         { id: 6, name: 'Evening ride / walk', time: '6:00 PM', xp: 80, cat: 'Ride', col: '#ff6b35', done: false },
         { id: 7, name: 'Journal & plan', time: '9:00 PM', xp: 65, cat: 'Focus', col: '#4a9eff', done: false },
       ],
+      setHabits: (habits) => set({ habits }),
       toggleHabit: (id) => {
         const { habits, addXp, setCombo, setComboActive, combo, comboTimeoutId, resetCombo, xp } = get();
         const h = habits.find(x => x.id === id);

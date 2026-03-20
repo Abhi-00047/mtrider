@@ -1,10 +1,65 @@
-'use client';
-import { useCallback, memo } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { useStore, SKINS } from '@/store/useStore';
+import { supabase } from '@/lib/supabase';
 import Topbar from './Topbar';
 
 const Habits = memo(function Habits() {
-  const { habits, toggleHabit, xp, level, streak, combo, comboActive, xpToday, soundOn, toggleSound, activeSkin } = useStore();
+  const { habits, setHabits, toggleHabit, xp, level, streak, combo, comboActive, xpToday, soundOn, toggleSound, activeSkin, user } = useStore();
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newXp, setNewXp] = useState(50);
+
+  const fetchHabits = useCallback(async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('habits')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('[Habits] Load error:', error);
+      return;
+    }
+
+    if (data) {
+      setHabits(data.map((h: any) => ({
+        id: h.id,
+        name: h.title,
+        done: h.completed,
+        xp: h.xp_reward,
+        time: h.time || 'Any time',
+        cat: h.category || 'Mind',
+        col: h.color || '#9b6dff'
+      })));
+    }
+  }, [user, setHabits]);
+
+  useEffect(() => {
+    fetchHabits();
+  }, [fetchHabits]);
+
+  const handleAddHabit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle || !user) return;
+
+    const { error } = await supabase.from('habits').insert({
+      user_id: user.id,
+      title: newTitle,
+      xp_reward: newXp,
+      completed: false
+    });
+
+    if (error) {
+      alert(`Error adding habit: ${error.message}`);
+    } else {
+      setShowAddModal(false);
+      setNewTitle('');
+      setNewXp(50);
+      fetchHabits();
+    }
+  };
   const skin = SKINS[activeSkin] || SKINS[0];
   const doneCount = habits.filter(h => h.done).length;
   const pct = habits.length === 0 ? 0 : Math.round(doneCount / habits.length * 100);
@@ -149,7 +204,16 @@ const Habits = memo(function Habits() {
         <div className="scrollArea" style={{ flex: 1, overflowY: 'auto', padding: '32px 40px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
             <div className="font-ui" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--dim)' }}>Today&apos;s Ride Plan</div>
-            <div className="font-mono" style={{ fontSize: 13, fontWeight: 800, color: pct === 100 ? '#3ddc84' : 'var(--dim)' }}>{doneCount} / {habits.length} DONE</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <button 
+                onClick={() => setShowAddModal(true)}
+                className="liquid-glass hoverable" 
+                style={{ padding: '6px 14px', borderRadius: 8, fontSize: 10, fontWeight: 800, color: skin.accent, border: `1px solid ${skin.accent}40`, background: 'transparent', cursor: 'pointer' }}
+              >
+                + ADD HABIT
+              </button>
+              <div className="font-mono" style={{ fontSize: 13, fontWeight: 800, color: pct === 100 ? '#3ddc84' : 'var(--dim)' }}>{doneCount} / {habits.length} DONE</div>
+            </div>
           </div>
 
           {[...habits].map((h, i) => (
@@ -311,6 +375,42 @@ const Habits = memo(function Habits() {
           </div>
         </div>
       </div>
+
+      {showAddModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <form onSubmit={handleAddHabit} className="liquid-glass" style={{ width: '100%', maxWidth: 400, padding: 32, display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div className="font-display" style={{ fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: '0.02em' }}>NEW OBJECTIVE</div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label className="font-ui" style={{ fontSize: 11, fontWeight: 700, color: 'var(--dim)', letterSpacing: '0.1em' }}>HABIT NAME</label>
+              <input 
+                autoFocus
+                value={newTitle}
+                onChange={e => setNewTitle(e.target.value)}
+                placeholder="e.g. Morning Ride"
+                className="liquid-glass"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '12px 16px', color: '#fff', borderRadius: 12, outline: 'none' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label className="font-ui" style={{ fontSize: 11, fontWeight: 700, color: 'var(--dim)', letterSpacing: '0.1em' }}>XP REWARD</label>
+              <input 
+                type="number"
+                value={newXp}
+                onChange={e => setNewXp(parseInt(e.target.value) || 0)}
+                className="liquid-glass"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '12px 16px', color: '#fff', borderRadius: 12, outline: 'none' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+              <button type="button" onClick={() => setShowAddModal(false)} className="hoverable" style={{ flex: 1, padding: '14px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--dim)', fontWeight: 700, cursor: 'pointer' }}>CANCEL</button>
+              <button type="submit" className="liquid-glass-accent hoverable" style={{ flex: 2, padding: '14px', borderRadius: 12, background: skin.accent, border: 'none', color: '#000', fontWeight: 800, cursor: 'pointer' }}>DEPLOY HABIT</button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 });

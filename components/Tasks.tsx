@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useEffect, useCallback, memo } from 'react';
-import { useStore, SKINS } from '@/store/useStore';
-import { loadTasks } from '@/lib/sync';
+import { useStore, SKINS, Task } from '@/store/useStore';
+import { supabase } from '@/lib/supabase';
 import Topbar from './Topbar';
 
 const Tasks = memo(function Tasks() {
@@ -22,14 +22,31 @@ const Tasks = memo(function Tasks() {
 
   // Load tasks on mount
   useEffect(() => {
-    if (user) {
-      loadTasks(user.id).then(fetchedTasks => {
-        setTasks(fetchedTasks);
-      }).catch(err => {
-        console.error('[Tasks] Failed to sync with Supabase:', err);
-      });
-    }
-  }, [user, setTasks]);
+    const fetchTasks = async () => {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('[Tasks] Failed to fetch:', error);
+        return;
+      }
+
+      if (data) {
+        setTasks(data.map((t: any) => ({
+          id: t.id,
+          name: t.title,
+          time: t.time || 'Any time',
+          done: t.completed,
+          priority: t.priority as 'high' | 'med' | 'low',
+          src: (t.via_bot ? 'tg' : 'app') as 'app' | 'tg',
+          date: t.date || 'today'
+        })));
+      }
+    };
+    fetchTasks();
+  }, [setTasks]);
 
   const sorted = [...tasks].sort((a, b) => {
     if (a.done !== b.done) return a.done ? 1 : -1;

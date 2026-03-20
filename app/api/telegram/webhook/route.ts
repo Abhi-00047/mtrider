@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     const fullText = message.text;
     const lowerText = fullText.toLowerCase().trim();
-    let replyText = 'Unknown command. Use "add <task>" or "done <habit>".';
+    let replyText = "🏍️ Command not recognized, Rider. Try: 'add gym 7am' or 'done meditation'";
 
     // Using the user_id directly from environmental variables as requested
     const userId = process.env.TELEGRAM_USER_ID;
@@ -34,23 +34,68 @@ export async function POST(req: NextRequest) {
 
     // Command: add <task title>
     if (lowerText.startsWith('add ')) {
-      const taskTitle = fullText.substring(4).trim();
+      let taskTitle = fullText.substring(4).trim();
       
+      // Basic time parsing logic
+      const parseTime = (text: string) => {
+        const timeRegex = /(\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b)/i;
+        const tomorrowRegex = /\btomorrow\b/i;
+        const timeMatch = text.match(timeRegex);
+        if (!timeMatch) return { timeStr: null, scheduledAt: null };
+
+        const timeStr = timeMatch[1].toLowerCase().replace(/\s+/g, '');
+        const isTomorrow = tomorrowRegex.test(text);
+        let [hours, minutes] = [0, 0];
+        const digits = timeStr.replace(/(am|pm)/, '');
+        if (digits.includes(':')) {
+          const parts = digits.split(':');
+          hours = parseInt(parts[0]);
+          minutes = parseInt(parts[1]);
+        } else {
+          hours = parseInt(digits);
+        }
+        if (timeStr.includes('pm') && hours < 12) hours += 12;
+        if (timeStr.includes('am') && hours === 12) hours = 0;
+
+        const now = new Date();
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istNow = new Date(now.getTime() + istOffset);
+        const scheduled = new Date(istNow);
+        if (isTomorrow) scheduled.setDate(scheduled.getDate() + 1);
+        scheduled.setHours(hours, minutes, 0, 0);
+        
+        // Convert back to UTC for Supabase
+        return { 
+          timeStr: timeMatch[1], 
+          scheduledAt: new Date(scheduled.getTime() - istOffset).toISOString() 
+        };
+      };
+
+      const { timeStr, scheduledAt } = parseTime(taskTitle);
+      // Clean up title (remove time patterns)
+      if (timeStr) {
+        taskTitle = taskTitle.replace(timeStr, '').replace(/\btomorrow\b/i, '').replace(/\s+/g, ' ').trim();
+      }
+
       const { error } = await supabase.from('tasks').insert({
         user_id: userId,
         title: taskTitle,
         completed: false,
         via_bot: true,
         date: new Date().toISOString().split('T')[0],
-        time: 'Any time',
+        time: timeStr || 'Any time',
         priority: 'med',
-        xp_reward: 50
+        xp_reward: 50,
+        scheduled_at: scheduledAt,
+        reminded: false
       });
 
       if (error) {
         replyText = `❌ Error adding task: ${error.message}`;
       } else {
-        replyText = `🚀 Task added: "${taskTitle}"`;
+        replyText = timeStr 
+          ? `⚡ Logged, Rider. I'll remind you at ${timeStr}. 🏍️`
+          : `⚡ Logged to the grid, Rider. '${taskTitle}' is on your ops list. Stay locked in. 🏍️`;
       }
     } 
     // Command: done <habit name>
@@ -77,10 +122,41 @@ export async function POST(req: NextRequest) {
         if (error) {
           replyText = `❌ Error updating habit: ${error.message}`;
         } else {
-          replyText = `🔥 Daily habit complete: "${habit.title}"!`;
+          replyText = `🔥 Habit crushed, Rider. '${habit.title}' marked complete. Keep the streak alive.`;
         }
       } else {
         replyText = `❓ Habit "${habitName}" not found. Check the title spelling.`;
+      }
+    }
+    // Command: habits
+    else if (lowerText === 'habits') {
+      const { data: habits, error } = await supabase
+        .from('habits')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        replyText = `❌ Error fetching habits: ${error.message}`;
+      } else if (habits && habits.length > 0) {
+        const list = habits.map((h: any, i: number) => `${i + 1}. ${h.title} ${h.completed ? '✅' : '⬜'}`).join('\n');
+        replyText = `🏍️ Today's Habits:\n${list}`;
+      } else {
+        replyText = "📭 No habits found, Rider. Stay disciplined.";
+      }
+    }
+    // Command: remind habits <time>
+    else if (lowerText.startsWith('remind habits ')) {
+      const timeStr = fullText.substring(14).trim();
+      const { error } = await supabase
+        .from('profiles')
+        .update({ habit_reminder_time: timeStr })
+        .eq('id', userId);
+
+      if (error) {
+        replyText = `❌ Error setting reminder: ${error.message}`;
+      } else {
+        replyText = `⚡ Reminder locked, Rider. I'll ping you for habits at ${timeStr}. 🏍️`;
       }
     }
 

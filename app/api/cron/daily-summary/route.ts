@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
     // 1. Get the primary user profile to identify who we're summarizing for
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('id, full_name')
+      .select('id, full_name, habit_reminder_time')
       .limit(1)
       .single();
 
@@ -64,14 +64,47 @@ export async function GET(req: NextRequest) {
       `Keep riding, ${profile.full_name || 'Rider'}.`
     ].join('\n');
 
-    // 6. Send via the Telegram sender API
-    // We use the absolute URL because fetch on the server doesn't support relative paths
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-    const sendResponse = await fetch(`${siteUrl}/api/telegram/send`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message }),
-    });
+
+    // 6. Check for Habit Reminder Match
+    const now = new Date();
+    // Use IST (UTC+5:30) for comparison as per user's context
+    const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+    const currentTimeStr = istTime.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit', 
+      hour12: true 
+    }).toLowerCase().replace(/\s+/g, '');
+
+    const userReminderTime = profile.habit_reminder_time?.toLowerCase().replace(/\s+/g, '');
+    
+    if (userReminderTime === currentTimeStr) {
+      const incompleteHabits = habits?.filter(h => !h.completed) || [];
+      if (incompleteHabits.length > 0) {
+        const habitList = incompleteHabits.map((h, i) => `${i + 1}. ${h.title}`).join('\n');
+        const reminderMsg = `🏍️ HABIT CHECK, Rider!\n\nStill pending for today:\n${habitList}\n\nShift gears and get it done.`;
+        
+        await fetch(`${siteUrl}/api/telegram/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: reminderMsg }),
+        });
+      }
+    }
+
+    // 7. Send Daily Summary (only at 18:00 UTC / 11:30 PM IST)
+    const isSummaryTime = now.getUTCHours() === 18 && now.getUTCMinutes() < 5;
+    let sendResponse;
+    if (isSummaryTime) {
+      sendResponse = await fetch(`${siteUrl}/api/telegram/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message }),
+      });
+    } else {
+      // Create a dummy successful response if not summary time but habit reminder processed
+      sendResponse = { ok: true, text: async () => 'Not summary time' };
+    }
 
     if (!sendResponse.ok) {
       const errorText = await sendResponse.text();
