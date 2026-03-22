@@ -10,6 +10,8 @@ import {
   saveIdea, 
   deleteIdeaFromDB 
 } from '@/lib/sync';
+import { supabase } from '@/lib/supabase';
+
 
 export const SKINS = [
   { id: '1', name: 'Obsidian Stealth', primary: '#1a1a24', accent: '#3ddc84', glow: 'rgba(61,220,132,0.6)', hover: 'rgba(61,220,132,0.1)' },
@@ -91,7 +93,8 @@ interface AppState {
 
   habits: Habit[];
   setHabits: (habits: Habit[]) => void;
-  toggleHabit: (id: number) => void;
+  toggleHabit: (id: number) => Promise<void>;
+
 
   tasks: Task[];
   addTask: (name: string, time?: string, src?: 'app' | 'tg', priority?: 'high' | 'med' | 'low') => void;
@@ -211,7 +214,7 @@ export const useStore = create<AppState>()(
         { id: 7, name: 'Journal & plan', time: '9:00 PM', xp: 65, cat: 'Focus', col: '#4a9eff', done: false },
       ],
       setHabits: (habits) => set({ habits }),
-      toggleHabit: (id) => {
+      toggleHabit: async (id) => {
         const { habits, addXp, setCombo, setComboActive, combo, comboTimeoutId, resetCombo, xp } = get();
         const h = habits.find(x => x.id === id);
         if (!h) return;
@@ -230,10 +233,23 @@ export const useStore = create<AppState>()(
           set({ habits: habits.map(x => x.id === id ? { ...x, done: true } : x), comboTimeoutId: tid });
         }
 
+        // Supabase Call
+        const habit = get().habits.find(h => h.id === id);
+        if (habit) {
+          await supabase
+            .from('habits')
+            .update({ 
+              completed: habit.done,
+              last_completed: habit.done ? new Date().toISOString() : null
+            })
+            .eq('id', id);
+        }
+
         const { user } = get();
         const updatedHabit = get().habits.find(x => x.id === id);
         if (user && updatedHabit) saveHabit(user.id, updatedHabit);
       },
+
 
       tasks: [
         { id: 1, name: 'Morning ride check-up', time: '6:30 AM', src: 'app', priority: 'high', done: false, date: 'today' },
