@@ -9,6 +9,9 @@ const Habits = memo(function Habits() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newXp, setNewXp] = useState(50);
+  const [newTime, setNewTime] = useState('Any time');
+  const [newCat, setNewCat] = useState('Mind');
+
 
   const fetchHabits = useCallback(async () => {
     const { data, error } = await supabase
@@ -40,24 +43,37 @@ const Habits = memo(function Habits() {
 
   const handleAddHabit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle || !user) return;
+    if (!newTitle.trim()) return;
+    
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    
+    if (!authUser) {
+      alert('Not logged in');
+      return;
+    }
 
     const { error } = await supabase.from('habits').insert({
-      user_id: user.id,
-      title: newTitle,
+      user_id: authUser.id,
+      title: newTitle.trim(),
       xp_reward: newXp,
+      time: newTime,
+      category: newCat,
       completed: false
     });
 
     if (error) {
-      alert(`Error adding habit: ${error.message}`);
+      alert('Error: ' + error.message);
     } else {
       setShowAddModal(false);
       setNewTitle('');
       setNewXp(50);
+      setNewTime('Any time');
+      setNewCat('Mind');
       fetchHabits();
     }
+
   };
+
   const skin = SKINS[activeSkin] || SKINS[0];
   const doneCount = habits.filter(h => h.done).length;
   const pct = habits.length === 0 ? 0 : Math.round(doneCount / habits.length * 100);
@@ -179,7 +195,16 @@ const Habits = memo(function Habits() {
 
   const comboDisplay = combo >= 3 ? 3 : combo >= 2 ? 2 : combo >= 1.5 ? '1.5' : 1;
   const comboColor = combo >= 3 ? '#d4a843' : combo >= 2 ? '#ff6b35' : combo >= 1.5 ? skin.accent : 'var(--dim)';
-  const comboLabel = combo >= 3 ? 'BLAZING!' : combo >= 2 ? 'ON FIRE!' : combo >= 1.5 ? 'Building!' : 'No combo';
+  const handleDeleteHabit = async (id: string | number) => {
+    const { error } = await supabase
+      .from('habits')
+      .delete()
+      .eq('id', id);
+    
+    if (!error) {
+      fetchHabits();
+    }
+  };
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', background: 'transparent' }}>
@@ -272,7 +297,31 @@ const Habits = memo(function Habits() {
                 fontWeight: 800, flexShrink: 0,
                 border: `1px solid ${h.col}30`, letterSpacing: '0.05em'
               }}>{h.cat}</div>
+
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteHabit(h.id);
+                }}
+                style={{
+                  width: 28, height: 28, display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', borderRadius: 8, cursor: 'pointer',
+                  color: 'rgba(255,255,255,0.2)', flexShrink: 0,
+                  transition: 'color 0.2s'
+                }}
+                onMouseEnter={e => (e.currentTarget.style.color = '#ff4444')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.2)')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" 
+                  stroke="currentColor" strokeWidth="2">
+                  <polyline points="3,6 5,6 21,6" />
+                  <path d="M19,6l-1,14H6L5,6" />
+                  <path d="M10,11v6M14,11v6" />
+                  <path d="M9,6V4h6v2" />
+                </svg>
+              </div>
             </div>
+
           ))}
         </div>
 
@@ -401,6 +450,40 @@ const Habits = memo(function Habits() {
                 style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '12px 16px', color: '#fff', borderRadius: 12, outline: 'none' }}
               />
             </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label className="font-ui" style={{ fontSize: 11, fontWeight: 700, 
+                color: 'var(--dim)', letterSpacing: '0.1em' }}>TIME</label>
+              <input
+                value={newTime}
+                onChange={e => setNewTime(e.target.value)}
+                placeholder="e.g. 6:00 AM"
+                className="liquid-glass"
+                style={{ background: 'rgba(255,255,255,0.05)', 
+                  border: '1px solid rgba(255,255,255,0.1)', 
+                  padding: '12px 16px', color: '#fff', borderRadius: 12, outline: 'none' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <label className="font-ui" style={{ fontSize: 11, fontWeight: 700, 
+                color: 'var(--dim)', letterSpacing: '0.1em' }}>CATEGORY</label>
+              <select
+                value={newCat}
+                onChange={e => setNewCat(e.target.value)}
+                className="liquid-glass"
+                style={{ background: 'rgba(5,7,9,0.9)', 
+                  border: '1px solid rgba(255,255,255,0.1)', 
+                  padding: '12px 16px', color: '#fff', borderRadius: 12, outline: 'none' }}
+              >
+                <option>Mind</option>
+                <option>Body</option>
+                <option>Focus</option>
+                <option>Fuel</option>
+                <option>Ride</option>
+              </select>
+            </div>
+
 
             <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
               <button type="button" onClick={() => setShowAddModal(false)} className="hoverable" style={{ flex: 1, padding: '14px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: 'none', color: 'var(--dim)', fontWeight: 700, cursor: 'pointer' }}>CANCEL</button>
