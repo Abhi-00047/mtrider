@@ -195,6 +195,8 @@ const Habits = memo(function Habits() {
 
   const comboDisplay = combo >= 3 ? 3 : combo >= 2 ? 2 : combo >= 1.5 ? '1.5' : 1;
   const comboColor = combo >= 3 ? '#d4a843' : combo >= 2 ? '#ff6b35' : combo >= 1.5 ? skin.accent : 'var(--dim)';
+  const comboLabel = combo >= 3 ? 'BLAZING!' : combo >= 2 ? 'ON FIRE!' : combo >= 1.5 ? 'Building!' : 'No combo';
+
   const handleDeleteHabit = async (id: string | number) => {
     const { error } = await supabase
       .from('habits')
