@@ -20,8 +20,8 @@ const Tasks = memo(function Tasks() {
     }
   }, [chatMsgs]);
 
-  // Load tasks on mount
   useEffect(() => {
+    // Initial fetch with mapping
     const fetchTasks = async () => {
       const { data, error } = await supabase
         .from('tasks')
@@ -34,7 +34,6 @@ const Tasks = memo(function Tasks() {
       }
 
       if (data) {
-        useStore.getState().tasks.length = 0;
         setTasks(data.map((t: any) => ({
           id: t.id,
           name: t.title || t.name || 'Untitled',
@@ -47,7 +46,21 @@ const Tasks = memo(function Tasks() {
       }
     };
     fetchTasks();
+
+    // Real-time subscription
+    const subscription = supabase
+      .channel('tasks-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'tasks' },
+        () => { fetchTasks(); }
+      )
+      .subscribe();
+
+    return () => { 
+      supabase.removeChannel(subscription); 
+    };
   }, [setTasks]);
+
 
   const sorted = [...tasks].sort((a, b) => {
     if (a.done !== b.done) return a.done ? 1 : -1;
