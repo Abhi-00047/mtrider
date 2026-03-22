@@ -3,13 +3,8 @@ import { supabase } from '@/lib/supabase';
 
 export async function POST(req: NextRequest) {
   try {
-    const secret = req.headers.get('x-telegram-bot-api-secret-token');
-    if (process.env.TELEGRAM_SECRET_TOKEN && 
-        secret !== process.env.TELEGRAM_SECRET_TOKEN) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const body = await req.json();
+
 
     const { message } = body;
 
