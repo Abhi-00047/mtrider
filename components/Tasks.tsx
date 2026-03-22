@@ -21,18 +21,12 @@ const Tasks = memo(function Tasks() {
   }, [chatMsgs]);
 
   useEffect(() => {
-    // Initial fetch with mapping
     const fetchTasks = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('tasks')
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) {
-        console.error('[Tasks] Failed to fetch:', error);
-        return;
-      }
-
       if (data) {
         setTasks(data.map((t: any) => ({
           id: t.id,
@@ -45,21 +39,13 @@ const Tasks = memo(function Tasks() {
         })));
       }
     };
+
     fetchTasks();
+    const interval = setInterval(fetchTasks, 3000);
 
-    // Real-time subscription
-    const subscription = supabase
-      .channel('tasks-changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'tasks' },
-        () => { fetchTasks(); }
-      )
-      .subscribe();
-
-    return () => { 
-      supabase.removeChannel(subscription); 
-    };
+    return () => clearInterval(interval);
   }, [setTasks]);
+
 
 
   const sorted = [...tasks].sort((a, b) => {
