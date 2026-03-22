@@ -78,15 +78,18 @@ interface AppState {
   userName: string;
   userInitial: string;
 
-  addXp: (amount: number) => void;
+  addXp: (amount: number) => Promise<void>;
+
   setCombo: (c: number) => void;
   setComboActive: (v: boolean) => void;
-  setStreak: (s: number) => void;
+  setStreak: (s: number) => Promise<void>;
+
   setTgLinked: (v: boolean) => void;
   setActiveSkin: (i: number) => void;
   toggleSound: () => void;
   resetCombo: () => void;
-  checkDailyReset: () => void;
+  checkDailyReset: () => Promise<void>;
+
   setUserName: (n: string) => void;
   setUserInitial: (i: string) => void;
   resetAppData: () => void;
@@ -148,7 +151,7 @@ export const useStore = create<AppState>()(
       userName: 'Rider K',
       userInitial: 'RK',
 
-      addXp: (amount) => {
+      addXp: async (amount) => {
         const { xp, level, combo, bestCombo } = get();
         const earned = Math.round(amount * combo);
         const newXp = xp + earned;
@@ -157,15 +160,45 @@ export const useStore = create<AppState>()(
         set({ xp: newXp, level: newLevel > level ? newLevel : level, xpToday: get().xpToday + earned, bestCombo: newBestCombo });
         
         const { user } = get();
-        if (user) saveProgress(user.id);
+        if (user) {
+          await supabase
+            .from('progress')
+            .upsert({
+              user_id: user.id,
+              xp: get().xp,
+              level: get().level,
+              streak: get().streak,
+              best_streak: get().bestStreak,
+              xp_today: get().xpToday,
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'user_id' });
+          
+          saveProgress(user.id);
+        }
       },
+
       setCombo: (c) => set({ combo: Math.min(c, 3) }),
       setComboActive: (v) => set({ comboActive: v }),
-      setStreak: (s) => {
+      setStreak: async (s) => {
         set({ streak: s, bestStreak: s > get().bestStreak ? s : get().bestStreak });
         const { user } = get();
-        if (user) saveProgress(user.id);
+        if (user) {
+          await supabase
+            .from('progress')
+            .upsert({
+              user_id: user.id,
+              xp: get().xp,
+              level: get().level,
+              streak: get().streak,
+              best_streak: get().bestStreak,
+              xp_today: get().xpToday,
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'user_id' });
+          
+          saveProgress(user.id);
+        }
       },
+
       setTgLinked: (v) => set({ tgLinked: v }),
       setActiveSkin: (i) => set({ activeSkin: i }),
       toggleSound: () => set({ soundOn: !get().soundOn }),
@@ -175,7 +208,7 @@ export const useStore = create<AppState>()(
         set({ comboActive: false, combo: 1, comboTimeoutId: null });
       },
 
-      checkDailyReset: () => {
+      checkDailyReset: async () => {
         const { lastActiveDate, habits, streak, bestStreak } = get();
         const today = new Date().toISOString().split('T')[0];
         if (lastActiveDate === today) return; // same day, no reset
@@ -195,7 +228,26 @@ export const useStore = create<AppState>()(
           combo: 1,
           comboActive: false,
         });
+
+        // Sync Progress to Supabase
+        const { user } = get();
+        if (user) {
+          await supabase
+            .from('progress')
+            .upsert({
+              user_id: user.id,
+              xp: get().xp,
+              level: get().level,
+              streak: get().streak,
+              best_streak: get().bestStreak,
+              xp_today: get().xpToday,
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'user_id' });
+          
+          saveProgress(user.id);
+        }
       },
+
 
       setUserName: (n) => set({ userName: n }),
       setUserInitial: (i) => set({ userInitial: i }),
@@ -223,6 +275,24 @@ export const useStore = create<AppState>()(
           // Unchecking — reverse XP
           const newXp = Math.max(0, xp - h.xp);
           set({ habits: habits.map(x => x.id === id ? { ...x, done: false } : x), xp: newXp });
+          
+          const { user } = get();
+          if (user) {
+            await supabase
+              .from('progress')
+              .upsert({
+                user_id: user.id,
+                xp: get().xp,
+                level: get().level,
+                streak: get().streak,
+                best_streak: get().bestStreak,
+                xp_today: get().xpToday,
+                updated_at: new Date().toISOString()
+              }, { onConflict: 'user_id' });
+            
+            saveProgress(user.id);
+          }
+
         } else {
           // Checking — award XP & combo
           addXp(h.xp);
