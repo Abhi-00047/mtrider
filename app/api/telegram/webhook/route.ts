@@ -3,7 +3,14 @@ import { supabase } from '@/lib/supabase';
 
 export async function POST(req: NextRequest) {
   try {
+    const secret = req.headers.get('x-telegram-bot-api-secret-token');
+    if (process.env.TELEGRAM_SECRET_TOKEN && 
+        secret !== process.env.TELEGRAM_SECRET_TOKEN) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await req.json();
+
     const { message } = body;
 
     // Telegram sends multiple updates, we only care about new messages
@@ -159,6 +166,58 @@ export async function POST(req: NextRequest) {
         replyText = `⚡ Reminder locked, Rider. I'll ping you for habits at ${timeStr}. 🏍️`;
       }
     }
+    // Command: stats
+    else if (lowerText === 'stats') {
+      const { data: progress } = await supabase
+        .from('progress')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      if (progress) {
+        replyText = [
+          `🏍️ RIDER STATS`,
+          `⚡ XP: ${progress.xp}`,
+          `🎯 Level: ${progress.level}`,
+          `🔥 Streak: ${progress.streak} days`,
+          `🏆 Best Streak: ${progress.best_streak} days`,
+          `Keep riding, Rider.`
+        ].join('\n');
+      } else {
+        replyText = "📭 Progress record not found, Rider. Get on the road.";
+      }
+    }
+    // Command: list tasks
+    else if (lowerText === 'list tasks') {
+      const { data: tasks } = await supabase
+        .from('tasks')
+        .select('title')
+        .eq('user_id', userId)
+        .eq('completed', false);
+      
+      if (tasks && tasks.length > 0) {
+        const list = tasks.map((t: any, i: number) => `${i + 1}. ${t.title}`).join('\n');
+        replyText = `📋 ACTIVE OPERATIONS:\n${list}`;
+      } else {
+        replyText = "✅ No active operations, Rider.";
+      }
+    }
+    // Command: delete task [name]
+    else if (lowerText.startsWith('delete task ')) {
+      const taskTitle = fullText.substring(12).trim();
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('user_id', userId)
+        .ilike('title', `%${taskTitle}%`);
+      
+      if (error) {
+        replyText = `❌ Error scrubbing task: ${error.message}`;
+      } else {
+        replyText = "🗑️ Operation scrubbed from the grid, Rider.";
+      }
+    }
+
 
     // Send the reply back to Telegram
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
