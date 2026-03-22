@@ -471,22 +471,12 @@ export const useStore = create<AppState>()(
         level: state.level,
         streak: state.streak,
         bestStreak: state.bestStreak,
-        tgLinked: state.tgLinked,
-        activeSkin: state.activeSkin,
-        ideas: state.ideas,
-        shipStreak: state.shipStreak,
-        lastShippedAt: state.lastShippedAt,
-        tasks: state.tasks,
-        habits: state.habits,
-        chatMsgs: state.chatMsgs,
-        savedTips: state.savedTips,
-        lastActiveDate: state.lastActiveDate,
-        xpToday: state.xpToday,
         soundOn: state.soundOn,
+        activeSkin: state.activeSkin,
         userName: state.userName,
         userInitial: state.userInitial,
-        user: state.user
       }),
+
     }
   )
 );
