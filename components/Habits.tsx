@@ -45,20 +45,19 @@ const Habits = memo(function Habits() {
     e.preventDefault();
     if (!newTitle.trim()) return;
     
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    
-    if (!authUser) {
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData?.user) {
       alert('Not logged in');
       return;
     }
 
     const { error } = await supabase.from('habits').insert({
-      user_id: authUser.id,
+      user_id: authData.user.id,
       title: newTitle.trim(),
       xp_reward: newXp,
+      completed: false,
       time: newTime,
-      category: newCat,
-      completed: false
+      category: newCat
     });
 
     if (error) {
@@ -71,8 +70,8 @@ const Habits = memo(function Habits() {
       setNewCat('Mind');
       fetchHabits();
     }
-
   };
+
 
   const skin = SKINS[activeSkin] || SKINS[0];
   const doneCount = habits.filter(h => h.done).length;
@@ -456,16 +455,31 @@ const Habits = memo(function Habits() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <label className="font-ui" style={{ fontSize: 11, fontWeight: 700, 
                 color: 'var(--dim)', letterSpacing: '0.1em' }}>TIME</label>
-              <input
+              <select
                 value={newTime}
                 onChange={e => setNewTime(e.target.value)}
-                placeholder="e.g. 6:00 AM"
                 className="liquid-glass"
-                style={{ background: 'rgba(255,255,255,0.05)', 
+                style={{ background: 'rgba(5,7,9,0.9)', 
                   border: '1px solid rgba(255,255,255,0.1)', 
                   padding: '12px 16px', color: '#fff', borderRadius: 12, outline: 'none' }}
-              />
+              >
+                <option>5:00 AM</option>
+                <option>5:30 AM</option>
+                <option>6:00 AM</option>
+                <option>6:30 AM</option>
+                <option>7:00 AM</option>
+                <option>7:30 AM</option>
+                <option>8:00 AM</option>
+                <option>8:30 AM</option>
+                <option>9:00 AM</option>
+                <option>12:00 PM</option>
+                <option>3:00 PM</option>
+                <option>6:00 PM</option>
+                <option>9:00 PM</option>
+                <option>Any time</option>
+              </select>
             </div>
+
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <label className="font-ui" style={{ fontSize: 11, fontWeight: 700, 
