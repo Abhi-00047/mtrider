@@ -44,7 +44,8 @@ const Tasks = memo(function Tasks() {
     const interval = setInterval(fetchTasks, 3000);
 
     return () => clearInterval(interval);
-  }, [setTasks]);
+  }, []);
+
 
 
 
