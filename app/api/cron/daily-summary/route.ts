@@ -17,11 +17,16 @@ export async function GET(req: NextRequest) {
 
     const userId = profile.id;
 
+    // Timezone Helper: IST (UTC+5:30)
+    const nowIST = new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000));
+    const todayIST = nowIST.toISOString().split('T')[0];
+
     // Calculate dates
-    const today = new Date().toISOString().split('T')[0];
-    const tomorrowDate = new Date();
+    const today = todayIST;
+    const tomorrowDate = new Date(nowIST);
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     const tomorrow = tomorrowDate.toISOString().split('T')[0];
+
 
     // 2. Query habits and count completions for today
     const { data: habits, error: habitsError } = await supabase
@@ -67,14 +72,13 @@ export async function GET(req: NextRequest) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
     // 6. Check for Habit Reminder Match
-    const now = new Date();
-    // Use IST (UTC+5:30) for comparison as per user's context
-    const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
-    const currentTimeStr = istTime.toLocaleTimeString('en-US', { 
+    const now = nowIST;
+    const currentTimeStr = now.toLocaleTimeString('en-US', { 
       hour: 'numeric', 
       minute: '2-digit', 
       hour12: true 
     }).toLowerCase().replace(/\s+/g, '');
+
 
     const userReminderTime = profile.habit_reminder_time?.toLowerCase().replace(/\s+/g, '');
     
@@ -93,7 +97,8 @@ export async function GET(req: NextRequest) {
     }
 
     // 7. Send Daily Summary (only at 18:00 UTC / 11:30 PM IST)
-    const isSummaryTime = now.getUTCHours() === 18 && now.getUTCMinutes() < 5;
+    const isSummaryTime = nowIST.getUTCHours() === 18 && nowIST.getUTCMinutes() < 5;
+
     let sendResponse;
     if (isSummaryTime) {
       sendResponse = await fetch(`${siteUrl}/api/telegram/send`, {
