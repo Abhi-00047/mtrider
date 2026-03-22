@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
     else if (lowerText === 'stats') {
       const { data: progress } = await supabase
         .from('progress')
-        .select('*')
+        .select('xp, level, streak, last_active, updated_at')
         .eq('user_id', userId)
         .single();
       
@@ -175,9 +175,9 @@ export async function POST(req: NextRequest) {
           `⚡ XP: ${progress.xp}`,
           `🎯 Level: ${progress.level}`,
           `🔥 Streak: ${progress.streak} days`,
-          `🏆 Best Streak: ${progress.best_streak} days`,
           `Keep riding, Rider.`
         ].join('\n');
+
       } else {
         replyText = "📭 Progress record not found, Rider. Get on the road.";
       }

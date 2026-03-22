@@ -11,7 +11,8 @@ export const loadUserData = async (user: User) => {
 
   const { data: progress } = await supabase
     .from('progress')
-    .select('*')
+    .select('xp, level, streak, last_active, updated_at')
+
     .eq('user_id', user.id)
     .single();
 
