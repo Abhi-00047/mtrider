@@ -168,10 +168,10 @@ export const useStore = create<AppState>()(
               xp: get().xp,
               level: get().level,
               streak: get().streak,
-              best_streak: get().bestStreak,
-              xp_today: get().xpToday,
+              last_active: new Date().toISOString().split('T')[0],
               updated_at: new Date().toISOString()
             }, { onConflict: 'user_id' });
+
           
           saveProgress(user.id);
         }
@@ -190,10 +190,10 @@ export const useStore = create<AppState>()(
               xp: get().xp,
               level: get().level,
               streak: get().streak,
-              best_streak: get().bestStreak,
-              xp_today: get().xpToday,
+              last_active: new Date().toISOString().split('T')[0],
               updated_at: new Date().toISOString()
             }, { onConflict: 'user_id' });
+
           
           saveProgress(user.id);
         }
@@ -239,10 +239,10 @@ export const useStore = create<AppState>()(
               xp: get().xp,
               level: get().level,
               streak: get().streak,
-              best_streak: get().bestStreak,
-              xp_today: get().xpToday,
+              last_active: new Date().toISOString().split('T')[0],
               updated_at: new Date().toISOString()
             }, { onConflict: 'user_id' });
+
           
           saveProgress(user.id);
         }
@@ -285,10 +285,10 @@ export const useStore = create<AppState>()(
                 xp: get().xp,
                 level: get().level,
                 streak: get().streak,
-                best_streak: get().bestStreak,
-                xp_today: get().xpToday,
+                last_active: new Date().toISOString().split('T')[0],
                 updated_at: new Date().toISOString()
               }, { onConflict: 'user_id' });
+
             
             saveProgress(user.id);
           }
